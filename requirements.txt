@@ -3,6 +3,5 @@ nltk
 numpy
 Pillow
 argparse
-pycocotools
 torch
 torchvision
