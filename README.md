@@ -5,16 +5,26 @@
 git clone https://github.com/pdollar/coco.git
 cd coco/PythonAPI/
 make
-python setup.py build
-python setup.py install
+python3 setup.py build
+python3 setup.py install
 
 安装必要的包
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 
 下载数据文件
 chmod +x download.sh
 ./download.sh
 
-预处理数据
-python build_vocab.py
-python resize.py
+预处理数据, 需指定数据文件路径
+python3 build_vocab.py
+python3 resize.py
+
+linux需安装tk
+sudo apt-get install python3-tk
+
+nltk需要下载数据
+import nltk
+nltk.download("punkt")
+
+
+

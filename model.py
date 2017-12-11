@@ -38,10 +38,10 @@ class ImageCNN(nn.Module):
 
 
 class MatchCNN(nn.Module):
-    def __init__(self, embed_size, image_vector_size, vocab_size, stride=3, sen_len=30, conv1=200, conv2=300, conv3=300,linear2=400):
+    def __init__(self, embed_size, image_vector_size, vocab_size, pad_len, stride=3, conv1=200, conv2=300, conv3=300,linear2=400):
         super(MatchCNN, self).__init__()
         self.stride = 3
-        linear1_input = sen_len
+        linear1_input = pad_len
         for i in range(3):
             linear1_input = (linear1_input - stride + 1)/2
         linear1_input = int(linear1_input)
