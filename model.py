@@ -116,7 +116,7 @@ class MatchCNN(nn.Module):
     def mlp(self, features, linear_function1, linear_function2, image_vectors=None):
         features = features.contiguous()
         features_num = self.num_flat_features(features)
-        print("flat size:", features_num)
+     #   print("flat size:", features_num)
         features = features.view(-1, features_num)
 
         if (image_vectors is not None):
@@ -124,7 +124,7 @@ class MatchCNN(nn.Module):
 
         features = F.relu(linear_function1(features))
         features = F.relu(linear_function2(features))
-        print("final shape:", features.data.numpy().shape)
+     #   print("final shape:", features.data.numpy().shape)
         return features
 
     #     def muti_mlp(self, features, image_vectors, linear_function1, linear_function2):
@@ -157,7 +157,8 @@ class MatchCNN(nn.Module):
         features1 = self.scan_conv(features, image_vectors)
         features = F.relu(conv_function(features1))
         features = self.zero_gate(features1, features)
-        print("muti_convlution1 features shape:", features.size())
+       # print("no zero gate")
+     #   print("muti_convlution1 features shape:", features.size())
         features = self.sentence_pooling(features)
         return features;
 
@@ -228,7 +229,7 @@ class MatchCNN(nn.Module):
         batch_size = features.size(0)
         sentence_size = features.size(1)
         channel_size = features.size(2)
-        print("muti_convlution input features shape:", features.size())
+      #  print("muti_convlution input features shape:", features.size())
         #         features_transpose = features.permute(0, 2, 1)
         if (image_vectors is None):
             sentence_vectors = Variable(torch.FloatTensor(batch_size, sentence_size - stride + 1, stride * channel_size))
@@ -236,7 +237,9 @@ class MatchCNN(nn.Module):
             image_size = image_vectors.size(1)
             sentence_vectors = Variable(
                 torch.FloatTensor(batch_size, sentence_size - stride + 1, stride * channel_size + image_size))
-        print("sentence_vectors shape:", sentence_vectors.size())
+        if torch.cuda.is_available():
+            sentence_vectors = sentence_vectors.cuda()
+      #  print("sentence_vectors shape:", sentence_vectors.size())
         for i in range(stride):
             sentence_vectors[:, :, i * channel_size:(i + 1) * channel_size] = features[:, i:sentence_size - stride + 1 + i, :]
         if image_vectors is not None:
@@ -249,5 +252,5 @@ class MatchCNN(nn.Module):
 
     def zero_gate(self, feature1, feature2):
         zero_vectors = feature1.sum(dim=2, keepdim=True)
-        zero_vectors[zero_vectors > 0] = 1
+        zero_vectors[zero_vectors != 0] = 1
         return torch.mul(feature2, zero_vectors)
