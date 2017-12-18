@@ -34,7 +34,7 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--image_dir', type=str, default='../data/coco/train2014/',
+    parser.add_argument('--image_dir', type=str, default='../data/coco/val2014/',
                         help='directory for train images')
     parser.add_argument('--output_dir', type=str, default='../data/coco/resized2014/',
                         help='directory for saving resized images')

@@ -12,11 +12,13 @@ class ImageCNN(nn.Module):
     def __init__(self, image_vector_size):
         """Load the pretrained ResNet-152 and replace top fc layer."""
         super(ImageCNN, self).__init__()
-        resnet = models.resnet152(pretrained=True)
+        resnet = models.resnet18(pretrained=True)
+       # for param in resnet.parameters():
+       #     param.requires_grad = False
         modules = list(resnet.children())[:-1]  # delete the last fc layer.
         self.resnet = nn.Sequential(*modules)
         self.linear = nn.Linear(resnet.fc.in_features, image_vector_size)
-        self.bn = nn.BatchNorm1d(image_vector_size, momentum=0.01)
+ #       self.bn = nn.BatchNorm1d(image_vector_size, momentum=0.01)
         self.init_weights()
 
 
@@ -33,7 +35,9 @@ class ImageCNN(nn.Module):
         features = self.resnet(images)
         features = Variable(features.data)
         features = features.view(features.size(0), -1)
-        features = self.bn(self.linear(features))
+ #       features = self.bn(self.linear(features))
+        features = self.linear(features)
+
         return features
 
 
@@ -73,6 +77,23 @@ class MatchCNN(nn.Module):
         self.muti_linear1_sen = nn.Linear(linear1_input + image_vector_size, linear2)
         self.linear2_sen = nn.Linear(linear2, 1)
 
+        self.init_weight()
+        
+        
+    def init_weight(self):
+        self.linear2_word.weight.data.normal_(0.0,0.02)
+        self.linear2_word.bias.data.fill_(0)
+        
+        self.linear2_phs.weight.data.normal_(0.0,0.02)
+        self.linear2_phs.bias.data.fill_(0)
+        
+        self.linear2_phl.weight.data.normal_(0.0,0.02)
+        self.linear2_phl.bias.data.fill_(0)
+        
+        self.linear2_sen.weight.data.normal_(0.0,0.02)
+        self.linear2_sen.bias.data.fill_(0)
+        
+    
     """
         image_vectors: batch_size * sentence_vector_size
         sentences : batch_size * sentence_size(now fixed as 30)
@@ -122,8 +143,8 @@ class MatchCNN(nn.Module):
         if (image_vectors is not None):
             features = torch.cat([features, image_vectors], dim=1)
 
-        features = F.relu(linear_function1(features))
-        features = F.relu(linear_function2(features))
+        features = F.leaky_relu(linear_function1(features))
+        features = F.leaky_relu(linear_function2(features))
      #   print("final shape:", features.data.numpy().shape)
         return features
 
@@ -155,7 +176,7 @@ class MatchCNN(nn.Module):
 
     def conv(self, features, conv_function, image_vectors=None):
         features1 = self.scan_conv(features, image_vectors)
-        features = F.relu(conv_function(features1))
+        features = F.leaky_relu(conv_function(features1))
         features = self.zero_gate(features1, features)
        # print("no zero gate")
      #   print("muti_convlution1 features shape:", features.size())
