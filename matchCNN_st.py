@@ -25,8 +25,12 @@ class MatchCNN_st(nn.Module):
         self.conv1_sen = nn.Linear(embed_size * stride, conv1)
         self.conv2_sen = nn.Linear(conv1 * stride, conv2)
         self.conv3_sen = nn.Linear(conv2 * stride, conv3)
+        self.bn1_sen = nn.BatchNorm1d(linear1_input)
+
         self.muti_linear1_sen = nn.Linear(linear1_input + image_vector_size, linear2)
+        # self.bn2_sen = nn.BatchNorm1d(linear2)
         self.linear2_sen = nn.Linear(linear2, 1)
+        # self.bn3_sen = nn.BatchNorm1d(1)
 
         #self.init_weight()
 
@@ -50,7 +54,6 @@ class MatchCNN_st(nn.Module):
         #         image_vectors = Variable(torch.randn(10, 256))
 
         sentence_vectors = self.embed(sentences)
-
         features_sen = self.conv(sentence_vectors, self.conv1_sen)
         features_sen = self.conv(features_sen, self.conv2_sen)
         features_sen = self.conv(features_sen, self.conv3_sen)
@@ -68,12 +71,16 @@ class MatchCNN_st(nn.Module):
         features_num = self.num_flat_features(features)
         #   print("flat size:", features_num)
         features = features.view(-1, features_num)
+        features = self.bn1_sen(features)
 
-        if (image_vectors is not None):
+        if image_vectors is not None:
             features = torch.cat([features, image_vectors], dim=1)
-
         features = F.leaky_relu(linear_function1(features))
+
+        # features = self.bn2_sen(F.leaky_relu(linear_function1(features)))
         features = linear_function2(features)
+
+        # features = self.bn3_sen(linear_function2(features))
         #   print("final shape:", features.data.numpy().shape)
         return features
     #     def muti_mlp(self, features, image_vectors, linear_function1, linear_function2):

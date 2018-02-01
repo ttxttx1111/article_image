@@ -4,7 +4,8 @@ import os
 import nltk
 from PIL import Image
 from pycocotools.coco import COCO
-
+import numpy as np
+import copy
 
 class CocoDataset(data.Dataset):
     pad_length=100
@@ -21,6 +22,11 @@ class CocoDataset(data.Dataset):
         self.root = root
         self.coco = COCO(json)
         self.ids = list(self.coco.anns.keys())
+        self.imgids = list(self.coco.imgs.keys())
+        # self.wrongimgIds = copy.deepcopy(self.imgids)
+        # self.wrongimgIds = np.repeat(self.wrongimgIds, 5)
+        # np.random.shuffle(self.wrongimgIds)
+        self.imgLen = len(self.imgids)
         self.vocab = vocab
         self.transform = transform
         CocoDataset.pad_length = pad_len
@@ -32,20 +38,34 @@ class CocoDataset(data.Dataset):
         ann_id = self.ids[index]
         caption = coco.anns[ann_id]['caption']
         img_id = coco.anns[ann_id]['image_id']
-        path = coco.loadImgs(img_id)[0]['file_name']
 
+        seed = torch.LongTensor([0])
+        seed.random_(0, self.imgLen)
+        img_id_wrong = self.imgids[seed[0]]
+        # if len(self.wrongimgIds) != 0:
+        #     img_id_wrong = self.wrongimgIds[0]
+        #     self.wrongimgIds = np.delete(self.wrongimgIds, [0])
+        while img_id_wrong == img_id:
+            seed.random_(0, self.imgLen)
+            img_id_wrong = self.imgids[seed[0]]
+        path = coco.loadImgs(img_id)[0]['file_name']
         image = Image.open(os.path.join(self.root, path)).convert('RGB')
         if self.transform is not None:
             image = self.transform(image)
+        path_wrong = coco.loadImgs(img_id_wrong)[0]['file_name']
+        image_wrong = Image.open(os.path.join(self.root, path_wrong)).convert('RGB')
+        if self.transform is not None:
+            image_wrong = self.transform(image_wrong)
+            
 
         # Convert caption (string) to word ids.
         tokens = nltk.tokenize.word_tokenize(str(caption).lower())
         caption = []
-        caption.append(vocab('<start>'))
+        #caption.append(vocab('<start>'))
         caption.extend([vocab(token) for token in tokens])
-        caption.append(vocab('<end>'))
-        target = torch.Tensor(caption)
-        return image, target
+        #caption.append(vocab('<end>'))
+        caption_tensor = torch.Tensor(caption)
+        return image, image_wrong, caption_tensor
 
     def __len__(self):
         return len(self.ids)
@@ -69,18 +89,18 @@ def collate_fn(data):
     """
     # Sort a data list by caption length (descending order).
     data.sort(key=lambda x: len(x[1]), reverse=True)
-    images, captions = zip(*data)
+    images, images_wrong, captions = zip(*data)
 
     # Merge images (from tuple of 3D tensor to 4D tensor).
     images = torch.stack(images, 0)
-
+    images_wrong = torch.stack(images_wrong, 0)
     # Merge captions (from tuple of 1D tensor to 2D tensor).
     lengths = [len(cap) for cap in captions]
     targets = torch.zeros(len(captions), CocoDataset.pad_length).long()
     for i, cap in enumerate(captions):
         end = lengths[i]
         targets[i, :end] = cap[:end]        
-    return images, targets, lengths
+    return images, images_wrong, targets, lengths
 
 
 def get_loader(root, json, vocab, transform, batch_size, shuffle, num_workers, pad_len=30):

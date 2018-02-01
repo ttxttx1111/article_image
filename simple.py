@@ -32,14 +32,15 @@ class EncoderCNN(nn.Module):
 
 
 def to_var(x, volatile=False):
-    # if torch.cuda.is_available():
-        # x = x.cuda()
+    if torch.cuda.is_available():
+        x = x.cuda()
     return Variable(x, volatile=volatile)
 
+# torch.backends.cudnn.enabled=False
 
-# torch.backends.cudnn.enabled = True
+
 encodercnn = EncoderCNN(5)
-# encodercnn.cuda()
+encodercnn.cuda()
 total = 2000
 batch_size = 200
 images = torch.randn(batch_size, 3, 224, 224)

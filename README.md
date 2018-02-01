@@ -11,22 +11,19 @@ python3 setup.py install
 安装必要的包
 pip3 install -r requirements.txt
 
-下载数据文件
-chmod +x download.sh
-./download.sh
-
 预处理数据, 需指定数据文件路径
+建立
 python3 build_vocab.py
 python3 resize.py
 
-linux需安装tk
-sudo apt-get install python3-tk
-
 nltk需要下载数据
 import nltk
-nltk.download("punkt")
 
 
+
+
+
+evaluation
 比如图片为
 100
 500
@@ -35,6 +32,7 @@ nltk.download("punkt")
 18s 10000
 40 * 18s = 720s 
 10000/18s = 555 pair/s
+
 
 100张图
 500个caption

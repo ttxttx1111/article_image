@@ -2,9 +2,6 @@ import torch
 from torch.autograd import Variable
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
-import torch.nn.functional as F
-import torch.optim as optim
 import torchvision.models as models
 from torch.nn.utils.rnn import pack_padded_sequence
 
@@ -18,15 +15,13 @@ class ImageCNN(nn.Module):
         modules = list(resnet.children())[:-1]  # delete the last fc layer.
         self.resnet = nn.Sequential(*modules)
         self.linear = nn.Linear(resnet.fc.in_features, image_vector_size)
- #       self.bn = nn.BatchNorm1d(image_vector_size, momentum=0.01)
+        self.bn = nn.BatchNorm1d(image_vector_size, momentum=0.01)
         self.init_weights()
-
 
     def init_weights(self):
         """Initialize the weights."""
         self.linear.weight.data.normal_(0.0, 0.02)
         self.linear.bias.data.fill_(0)
-
 
     def forward(self, images):
         """Extract the image feature vectors."""
@@ -35,12 +30,37 @@ class ImageCNN(nn.Module):
         features = self.resnet(images)
         features = Variable(features.data)
         features = features.view(features.size(0), -1)
- #       features = self.bn(self.linear(features))
-        features = self.linear(features)
+        features = self.bn(self.linear(features))
 
+        # features = self.linear(features)
         return features
 
 
+class EncoderCNN(nn.Module):
+    def __init__(self, embed_size):
+        """Load the pretrained ResNet-152 and replace top fc layer."""
+        super(EncoderCNN, self).__init__()
+        resnet = models.resnet18(pretrained=True)
+        modules = list(resnet.children())[:-1]      # delete the last fc layer.
+        self.resnet = nn.Sequential(*modules)
+        self.linear = nn.Linear(resnet.fc.in_features, embed_size)
+        self.bn = nn.BatchNorm1d(embed_size, momentum=0.01)
+        self.init_weights()
+        
+    def init_weights(self):
+        """Initialize the weights."""
+        self.linear.weight.data.normal_(0.0, 0.02)
+        self.linear.bias.data.fill_(0)
+        
+    def forward(self, images):
+        """Extract the image feature vectors."""
+        features = self.resnet(images)
+        features = Variable(features.data)
+        features = features.view(features.size(0), -1)
+        features = self.bn(self.linear(features))
+        return features
+    
+    
 class MatchCNN(nn.Module):
     def __init__(self, embed_size, image_vector_size, vocab_size, pad_len, stride=3, conv1=200, conv2=300, conv3=300,linear2=400):
         super(MatchCNN, self).__init__()
@@ -78,7 +98,6 @@ class MatchCNN(nn.Module):
         self.linear2_sen = nn.Linear(linear2, 1)
 
         self.init_weight()
-        
         
     def init_weight(self):
         self.linear2_word.weight.data.normal_(0.0,0.02)
@@ -273,5 +292,6 @@ class MatchCNN(nn.Module):
 
     def zero_gate(self, feature1, feature2):
         zero_vectors = feature1.sum(dim=2, keepdim=True)
-        zero_vectors[zero_vectors != 0] = 1
+        mask = (zero_vectors != 0)
+        zero_vectors[mask] = 1
         return torch.mul(feature2, zero_vectors)
