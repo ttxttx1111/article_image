@@ -47,8 +47,11 @@ def trainer(epochs=1):
     """load models"""
     model_path = "../models"
 
-    imageCNN.load_state_dict(torch.load(os.path.join(model_path, 'imageCNN_st21-0.005963.pkl')))
-    matchCNN.load_state_dict(torch.load(os.path.join(model_path, 'matchCNN_st21-0.005963.pkl')))
+#     imageCNN.load_state_dict(torch.load(os.path.join(model_path, 'imageCNN_Nobn&drop_st90-0.005311.pkl')))
+#     matchCNN.load_state_dict(torch.load(os.path.join(model_path, 'matchCNN_Nobn&drop_st90-0.005311.pkl')))
+
+    # imageCNN.eval()
+    # matchCNN.eval()
     """set optimizer"""
     params = list(imageCNN.parameters()) + list(matchCNN.parameters())
     # params = list(imageCNN.linear.parameters()) + list(imageCNN.bn.parameters()) + list(matchCNN.parameters())
@@ -79,7 +82,7 @@ def trainer(epochs=1):
                              pad_len=pad_len)
 
     start = time.time()
-    for epoch in range(epochs):
+    for epoch in range(90):
         losses = []
         corrects = []
         for i, (images, images_wrong, captions, lengths) in enumerate(data_loader):
@@ -123,24 +126,30 @@ def trainer(epochs=1):
             corrects.append(correct)
             if i % 100 == 0:
                 print("-"*30)
-                print("score:", scores[0])
-                print("score_wrong:", scores_wrong[1])
+#                 print("score:", scores[0])
+#                 print("score_wrong:", scores_wrong[0])
 
                 print("epoch:%s, i:%s,loss:%s" % (epoch, i*batch_size, loss))
-                print("correct rate:", np.mean(corrects))
+                print("correct rate:%s" % np.mean(corrects))
 
     #         if i == 100:
     #             break
     #             print("scores",scores[0])
         mean_loss = torch.mean(torch.cat(losses))
         print("epoch:%s,mean loss:%s" % (epoch, mean_loss))
-        model_path = "../models"
-        """save models"""
-        torch.save(imageCNN.state_dict(), os.path.join(model_path, 'imageCNN_st%s-%f.pkl' % (epoch, mean_loss.cpu().data.numpy())))
-        torch.save(matchCNN.state_dict(), os.path.join(model_path, 'matchCNN_st%s-%f.pkl' % (epoch, mean_loss.cpu().data.numpy())))
+        
+        if (epoch + 1)%5 is 0:
+            model_path = "../models"
+            """save models"""
+            torch.save(imageCNN.state_dict(), os.path.join(model_path, 'imageCNN_mar0.5_st%s-%f.pkl' % (epoch, mean_loss.cpu().data.numpy())))
+            torch.save(matchCNN.state_dict(), os.path.join(model_path, 'matchCNN_mar0.5_st%s-%f.pkl' % (epoch, mean_loss.cpu().data.numpy())))
+
+
         print("time used:", time.time() - start)
 
     print("time used:", time.time() - start)
+
+
 
 
 def main(args):

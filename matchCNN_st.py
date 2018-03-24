@@ -25,7 +25,7 @@ class MatchCNN_st(nn.Module):
         self.conv1_sen = nn.Linear(embed_size * stride, conv1)
         self.conv2_sen = nn.Linear(conv1 * stride, conv2)
         self.conv3_sen = nn.Linear(conv2 * stride, conv3)
-        self.bn1_sen = nn.BatchNorm1d(linear1_input)
+#         self.bn1_sen = nn.BatchNorm1d(linear1_input)
 
         self.muti_linear1_sen = nn.Linear(linear1_input + image_vector_size, linear2)
         # self.bn2_sen = nn.BatchNorm1d(linear2)
@@ -71,7 +71,7 @@ class MatchCNN_st(nn.Module):
         features_num = self.num_flat_features(features)
         #   print("flat size:", features_num)
         features = features.view(-1, features_num)
-        features = self.bn1_sen(features)
+        # features = self.bn1_sen(features)
 
         if image_vectors is not None:
             features = torch.cat([features, image_vectors], dim=1)

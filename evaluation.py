@@ -31,14 +31,14 @@ def to_var(x, volatile=False):
 
 """load coco dataset"""
 data_dir = "../data/coco/"
-annotation_file = data_dir + "annotations/captions_train2014.json"
+annotation_file = data_dir + "annotations/captions_val2014.json"
 coco = COCO(annotation_file)
 
 # anns = coco.anns
 # imgs = coco.imgs
 
 """extract 200 imgid and corresponding 1000 captionid"""
-sample_num = 100
+sample_num = 1000
 # caption_num = sample_num * 1000
 img_ids_all = list(coco.imgs.keys())
 shuffle(img_ids_all)
@@ -59,7 +59,6 @@ imgs = []
 # Image preprocessing
 transform = transforms.Compose([
     transforms.RandomCrop(224),
-    transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
     transforms.Normalize((0.485, 0.456, 0.406),
                          (0.229, 0.224, 0.225))])
@@ -105,8 +104,7 @@ anns = to_var(torch.from_numpy(anns))
 image_vector_size = 256
 embed_size = 100
 margin = 0.1
-batch_size = 100
-epochs = 1
+batch_size = 10
 vocab_size = 9956
 momentum = 0.9
 lr = 0.0001
@@ -129,11 +127,11 @@ if torch.cuda.is_available():
 
 """load models"""
 model_path = "../models"
-imageCNN.load_state_dict(torch.load(os.path.join(model_path, 'imageCNN_st21-0.005963.pkl')))
-matchCNN.load_state_dict(torch.load(os.path.join(model_path, 'matchCNN_st21-0.005963.pkl')))
+imageCNN.load_state_dict(torch.load(os.path.join(model_path, 'imageCNN_mar0.5_st39-0.005489.pkl')))
+matchCNN.load_state_dict(torch.load(os.path.join(model_path, 'matchCNN_mar0.5_st39-0.005489.pkl')))
 
-# imageCNN.eval()
-# matchCNN.eval()
+# imageCNN = imageCNN.eval()
+# matchCNN = matchCNN.eval()
 
 """extract image feature"""
 
@@ -142,7 +140,7 @@ img_features_batch = to_var(torch.zeros(sample_num // batch_size, batch_size, im
 for i, img in enumerate(imgs):
     img_data[i] = img["data"]
 
-img_data_batch = to_var(torch.zeros(sample_num // batch_size, batch_size, 3, 224, 224))
+# img_data_batch = to_var(torch.zeros(sample_num // batch_size, batch_size, 3, 224, 224))
 for i in range(sample_num // batch_size):
     img_features_batch[i] = imageCNN(img_data[i * batch_size:(i + 1) * batch_size])
 
@@ -157,13 +155,14 @@ for i, caption in enumerate(anns):
         scores[j * batch_size:(j + 1) * batch_size, i] = score_batch_np[:, 0]
 
 
+# sort by column
 sorted_scores = (-scores).argsort(axis=0)
 
 scores_ranks = np.zeros((sample_num, sample_num), dtype=int)
 
 for i in range(sample_num):
     for j in range(sample_num):
-        scores_ranks[sorted_scores[i][j]][i] = j
+        scores_ranks[sorted_scores[i][j]][j] = i
 
 ranks_image = np.zeros((sample_num), dtype=int)
 for i in range(sample_num):
